@@ -1,0 +1,2 @@
+import type{NextRequest}from"next/server";import{NextResponse}from"next/server";import{requireDevStaff}from"@/server/auth";import{issueDevActivationCode}from"@/server/services";import{errorResponse}from"@/server/http";import{z}from"zod";
+export async function POST(request:NextRequest){try{requireDevStaff(request);const{participantId}=z.object({participantId:z.string().cuid()}).parse(await request.json());return NextResponse.json({ok:true,data:await issueDevActivationCode(participantId)},{status:201})}catch(error){return errorResponse(error)}}

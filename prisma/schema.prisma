@@ -30,6 +30,11 @@ enum ActorType {
   SYSTEM
 }
 
+enum EnrollmentStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
 model StaffUser {
   id            String       @id @default(cuid())
   email         String       @unique
@@ -55,6 +60,7 @@ model StudyParticipant {
   devices        PatientDevice[]
   sessions       PatientSession[]
   emaResponses   EmaResponse[]
+  emaOccurrences EmaOccurrence[]
   clarifications PatientClarification[]
   alerts         Alert[]
   auditEvents    AuditEvent[]
@@ -68,8 +74,27 @@ model Enrollment {
   enrolledById     String
   enrolledBy       StaffUser        @relation(fields: [enrolledById], references: [id])
   consentConfirmed Boolean
+  status           EnrollmentStatus @default(ACTIVE)
+  expiresAt        DateTime         @default(dbgenerated("(now() + '84 days'::interval)"))
+  withdrawnAt      DateTime?
   activationCodes  ActivationCode[]
   createdAt        DateTime         @default(now())
+}
+
+model EmaOccurrence {
+  id            String           @id @default(cuid())
+  participantId String
+  participant   StudyParticipant @relation(fields: [participantId], references: [id])
+  occurrenceKey String
+  availableAt   DateTime         @default(now())
+  closesAt      DateTime
+  submittedAt   DateTime?
+  devSynthetic  Boolean          @default(false)
+  response      EmaResponse?
+  createdAt     DateTime         @default(now())
+
+  @@unique([participantId, occurrenceKey])
+  @@index([participantId, submittedAt, closesAt])
 }
 
 model ActivationCode {
@@ -111,12 +136,27 @@ model EmaResponse {
   participantId  String
   participant    StudyParticipant       @relation(fields: [participantId], references: [id])
   occurrenceKey  String
+  occurrenceId   String?                @unique
+  occurrence     EmaOccurrence?         @relation(fields: [occurrenceId], references: [id])
   answers        Json
   submittedAt    DateTime               @default(now())
   clarifications PatientClarification[]
   alertEvidence  AlertEvidence[]
+  observations   EmaObservation[]
 
   @@unique([participantId, occurrenceKey])
+}
+
+model EmaObservation {
+  id            String      @id @default(cuid())
+  emaResponseId String
+  emaResponse   EmaResponse @relation(fields: [emaResponseId], references: [id])
+  metric        String
+  numericValue  Int?
+  textValue     String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([emaResponseId, metric])
 }
 
 model PatientClarification {

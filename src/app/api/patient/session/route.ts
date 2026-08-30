@@ -1,0 +1,2 @@
+import type{NextRequest}from"next/server";import{NextResponse}from"next/server";import{requirePatient}from"@/server/auth";import{errorResponse}from"@/server/http";
+export async function GET(request:NextRequest){try{const session=await requirePatient(request);return NextResponse.json({ok:true,data:{participantId:session.participantId,expiresAt:session.expiresAt}})}catch(error){return errorResponse(error)}}

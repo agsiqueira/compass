@@ -1,0 +1,1 @@
+export async function retrySerializable<T>(operation:()=>Promise<T>,maxAttempts=3){for(let attempt=0;attempt<maxAttempts;attempt++){try{return await operation()}catch(error){if(!(typeof error==="object"&&error&&"code"in error&&error.code==="P2034")||attempt===maxAttempts-1)throw error}}throw new Error("Serializable transaction retry exhausted")}

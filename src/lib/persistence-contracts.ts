@@ -1,0 +1,5 @@
+export type ActivationState={status:"UNUSED"|"USED"|"EXPIRED";expiresAt:Date;enrollmentStatus:"ACTIVE"|"WITHDRAWN";withdrawnAt:Date|null;enrollmentExpiresAt:Date};
+export function activationProblem(state:ActivationState,now:Date,activeDevices:number){if(state.status!=="UNUSED")return"USED"as const;if(state.expiresAt<=now)return"EXPIRED"as const;if(state.enrollmentStatus!=="ACTIVE"||state.withdrawnAt||state.enrollmentExpiresAt<=now)return"WITHDRAWN"as const;if(activeDevices>=2)return"DEVICE_LIMIT"as const;return null;}
+export type SessionState={expiresAt:Date;revokedAt:Date|null;deviceRevokedAt:Date|null;enrollmentStatus:"ACTIVE"|"WITHDRAWN";withdrawnAt:Date|null;enrollmentExpiresAt:Date};
+export function sessionIsActive(state:SessionState,now:Date){return !state.revokedAt&&!state.deviceRevokedAt&&state.expiresAt>now&&state.enrollmentStatus==="ACTIVE"&&!state.withdrawnAt&&state.enrollmentExpiresAt>now;}
+export function nursePriorityRank(priority:"URGENT"|"ATTENTION_NEEDED"|null){return priority==="URGENT"?0:priority==="ATTENTION_NEEDED"?1:2;}

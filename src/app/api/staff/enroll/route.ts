@@ -1,0 +1,2 @@
+import type{NextRequest}from"next/server";import{NextResponse}from"next/server";import{requireDevStaff}from"@/server/auth";import{enrollInput}from"@/server/schemas";import{enrollSynthetic}from"@/server/services";import{errorResponse}from"@/server/http";
+export async function POST(request:NextRequest){try{requireDevStaff(request);const input=enrollInput.parse(await request.json());return NextResponse.json({ok:true,data:await enrollSynthetic(input.displayName,input.consentConfirmed)},{status:201});}catch(error){return errorResponse(error)}}
