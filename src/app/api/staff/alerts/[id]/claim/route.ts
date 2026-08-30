@@ -1,0 +1,2 @@
+import type{NextRequest}from"next/server";import{NextResponse}from"next/server";import{requireDevStaff}from"@/server/auth";import{claimAlertService}from"@/server/services";import{errorResponse}from"@/server/http";
+export async function POST(request:NextRequest,{params}:{params:Promise<{id:string}>}){try{requireDevStaff(request);const{id}=await params;return NextResponse.json({ok:true,data:await claimAlertService(id)})}catch(error){return errorResponse(error)}}

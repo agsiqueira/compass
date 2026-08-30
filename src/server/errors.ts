@@ -1,0 +1,3 @@
+export type ErrorCode="VALIDATION"|"UNAUTHORIZED"|"NOT_FOUND"|"CONFLICT"|"EXPIRED"|"DEVICE_LIMIT"|"DATABASE";
+export class AppError extends Error{constructor(public code:ErrorCode,message:string,public status=400){super(message)}}
+export function publicError(error:unknown){if(error instanceof AppError)return{status:error.status,body:{ok:false,error:error.code,message:error.message}};if(process.env.NODE_ENV==="development"){const code=typeof error==="object"&&error&&"code"in error?String(error.code):error instanceof Error?error.name:"UNKNOWN";console.error("COMPASS_DATABASE_OPERATION_FAILED",code)}return{status:503,body:{ok:false,error:"DATABASE",message:"COMPASS could not save that change. Please try again."}};}

@@ -1,25 +1,64 @@
-# COMPASS — Milestone 01
+# COMPASS — Milestone 02
 
-Clickable synthetic, nonclinical vertical prototype for enrollment, activation, one EMA check-in, deterministic alerting, and nurse claim/close handling.
+COMPASS is a synthetic, explicitly nonclinical prototype for database-backed enrollment, patient activation, EMA submission, deterministic alerting, and nurse review. Milestone 02 stores shared state in Neon/PostgreSQL instead of browser storage.
 
-## Local prototype
+## Private environment setup
 
-1. Run `npm install` (Node.js 24+).
-2. Copy `.env.example` to `.env.local`; keep `COMPASS_ENABLE_DEV_ACCESS=true`.
-3. Run `npm run dev`, open `http://localhost:3000`, and start with **Staff enrollment**.
+Use Node.js 24+ and npm. Copy `.env.example` to the ignored `.env` file and privately provide:
 
-The clickable milestone uses browser-local synthetic state so review does not require a database. Choose pain `10` and hydration `none` to exercise the deliberately nonclinical urgent test rule. Clear site storage to restart.
+- `DATABASE_URL`: pooled Neon application connection
+- `DIRECT_URL`: unpooled Neon migration connection
+- `COMPASS_ENABLE_DEV_ACCESS=true`: explicitly enables the local synthetic role entry
 
-## Neon / Prisma
+Keep actual values only in `.env`. Never place credentials in chat, source files, screenshots, logs, Git, or reports. Clerk placeholders remain reserved for Milestone 03.
 
-Privately place the pooled Neon URL in `DATABASE_URL` and the unpooled URL in `DIRECT_URL` inside ignored `.env.local`. Never paste credentials into chat, Git, logs, or source files. Then run `npm run prisma:generate`, `npm run db:migrate`, and `npm run db:seed`.
+## Install and database setup
+
+```text
+npm install
+npm run prisma:generate
+npm run prisma:validate
+npx prisma migrate deploy
+npm run db:seed
+```
+
+Migrations are additive and must not reset, truncate, or recreate the shared Neon development database. The seed idempotently creates only the fictional development nurse account.
+
+## Run the prototype
+
+```text
+npm run dev
+```
+
+Open `http://localhost:3000` and begin with **Staff enrollment**. Enrollment, activation, patient sessions, EMA occurrences/responses, alerts, and audit events are persisted in Neon and are visible after refresh and across browser contexts.
+
+The patient session is an opaque token stored in an HTTP-only, SameSite-protected cookie. Activation codes and session tokens are stored only as hashes; six-digit PINs use password hashing. The nurse dashboard includes every active synthetic participant and orders urgent, attention-needed, then stable patients.
+
+Development-only dashboard actions can create another synthetic EMA occurrence or issue another synthetic device code for acceptance testing. All staff, patient, and development prototype routes return 404 outside development or when `COMPASS_ENABLE_DEV_ACCESS` is not exactly `true`. Clerk staff authentication is deferred to Milestone 03.
 
 ## Verification
 
-Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and `npm run prisma:validate`. `GET /api/health` returns service status.
+```text
+npm run lint
+npm run typecheck
+npm test
+npm run prisma:validate
+npm run prisma:generate
+npm run db:seed
+npm run build
+```
 
-Staff and patient prototype routes require both development mode and `COMPASS_ENABLE_DEV_ACCESS=true`. Production returns 404 until Clerk authorization is integrated.
+`GET /api/health` checks both the application and database connection, returning a degraded 503 response when PostgreSQL is unavailable.
 
-## Safety and limitations
+## Synthetic-data and safety limitations
 
-All names and content are fictional placeholders. This is not a medical device, emergency service, approved questionnaire, or clinical guidance. The prototype is not continuously monitored. The alert rule is a software test combination, not a medical threshold. No ECOG inference, AI provider, notifications, production auth, or real patient data is included. Submitted answers are locked; corrections belong in appended clarification records.
+- Use fictional patients only. No real patient, credential, or restricted clinical information belongs in this repository or development database.
+- EMA questions, alert rules, evidence descriptions, and outcomes are nonclinical placeholders requiring clinical approval.
+- COMPASS is not an emergency service and is not continuously monitored.
+- Original EMA submissions cannot be overwritten; corrections remain append-only.
+- No AI provider participates in storage, alert generation, or state transitions.
+- Clerk, formal ECOG workflows, treatment cycles, notifications, approved clinical content, production deployment, voice, and RAG are excluded from this milestone.
+
+## Dependency advisory
+
+Prisma 7.10.0 currently brings in `deepmerge-ts@7.1.5` through `@prisma/config`. This documented prototype dependency risk is intentionally preserved. Do not run `npm audit fix --force` or adopt an unapproved Prisma major/prerelease solely to remove it; reassess when a compatible stable Prisma update is available and verify the full suite before upgrading.

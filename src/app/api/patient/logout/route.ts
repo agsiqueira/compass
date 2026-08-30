@@ -1,0 +1,2 @@
+import type{NextRequest}from"next/server";import{NextResponse}from"next/server";import{requirePatient}from"@/server/auth";import{revokeSession}from"@/server/services";import{errorResponse}from"@/server/http";import{expiredSessionCookie}from"@/server/security";
+export async function POST(request:NextRequest){try{const session=await requirePatient(request);await revokeSession(session.id,session.participantId);const response=NextResponse.json({ok:true});response.cookies.set(expiredSessionCookie());return response;}catch(error){return errorResponse(error)}}
