@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ActivationStatus {
+  UNUSED
+  USED
+  EXPIRED
+}
+
+enum AlertPriority {
+  ATTENTION_NEEDED
+  URGENT
+}
+
+enum AlertStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+enum ActorType {
+  STAFF
+  PATIENT
+  SYSTEM
+}
+
+model StaffUser {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String
+  enrollments   Enrollment[]
+  claimedAlerts Alert[]      @relation("ClaimedBy")
+  auditEvents   AuditEvent[]
+}
+
+model PatientIdentity {
+  id          String            @id @default(cuid())
+  displayName String
+  participant StudyParticipant?
+  createdAt   DateTime          @default(now())
+}
+
+model StudyParticipant {
+  id             String                 @id @default(cuid())
+  studyId        String                 @unique
+  identityId     String                 @unique
+  identity       PatientIdentity        @relation(fields: [identityId], references: [id])
+  enrollment     Enrollment?
+  devices        PatientDevice[]
+  sessions       PatientSession[]
+  emaResponses   EmaResponse[]
+  clarifications PatientClarification[]
+  alerts         Alert[]
+  auditEvents    AuditEvent[]
+  createdAt      DateTime               @default(now())
+}
+
+model Enrollment {
+  id               String           @id @default(cuid())
+  participantId    String           @unique
+  participant      StudyParticipant @relation(fields: [participantId], references: [id])
+  enrolledById     String
+  enrolledBy       StaffUser        @relation(fields: [enrolledById], references: [id])
+  consentConfirmed Boolean
+  activationCodes  ActivationCode[]
+  createdAt        DateTime         @default(now())
+}
+
+model ActivationCode {
+  id           String           @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id])
+  codeHash     String           @unique
+  status       ActivationStatus @default(UNUSED)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime         @default(now())
+}
+
+model PatientDevice {
+  id            String           @id @default(cuid())
+  participantId String
+  participant   StudyParticipant @relation(fields: [participantId], references: [id])
+  label         String
+  pinHash       String
+  revokedAt     DateTime?
+  sessions      PatientSession[]
+  createdAt     DateTime         @default(now())
+}
+
+model PatientSession {
+  id            String           @id @default(cuid())
+  participantId String
+  participant   StudyParticipant @relation(fields: [participantId], references: [id])
+  deviceId      String
+  device        PatientDevice    @relation(fields: [deviceId], references: [id])
+  tokenHash     String           @unique
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime         @default(now())
+}
+
+model EmaResponse {
+  id             String                 @id @default(cuid())
+  participantId  String
+  participant    StudyParticipant       @relation(fields: [participantId], references: [id])
+  occurrenceKey  String
+  answers        Json
+  submittedAt    DateTime               @default(now())
+  clarifications PatientClarification[]
+  alertEvidence  AlertEvidence[]
+
+  @@unique([participantId, occurrenceKey])
+}
+
+model PatientClarification {
+  id            String           @id @default(cuid())
+  participantId String
+  participant   StudyParticipant @relation(fields: [participantId], references: [id])
+  emaResponseId String
+  emaResponse   EmaResponse      @relation(fields: [emaResponseId], references: [id])
+  text          String
+  createdAt     DateTime         @default(now())
+}
+
+model Alert {
+  id             String           @id @default(cuid())
+  participantId  String
+  participant    StudyParticipant @relation(fields: [participantId], references: [id])
+  priority       AlertPriority
+  status         AlertStatus      @default(NEW)
+  summary        String
+  ruleVersion    String
+  claimedById    String?
+  claimedBy      StaffUser?       @relation("ClaimedBy", fields: [claimedById], references: [id])
+  claimedAt      DateTime?
+  closedAt       DateTime?
+  closureOutcome String?
+  evidence       AlertEvidence[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([participantId, status])
+}
+
+model AlertEvidence {
+  id            String      @id @default(cuid())
+  alertId       String
+  alert         Alert       @relation(fields: [alertId], references: [id])
+  emaResponseId String
+  emaResponse   EmaResponse @relation(fields: [emaResponseId], references: [id])
+  signal        String
+  createdAt     DateTime    @default(now())
+
+  @@unique([alertId, emaResponseId, signal])
+}
+
+model AuditEvent {
+  id            String            @id @default(cuid())
+  participantId String?
+  participant   StudyParticipant? @relation(fields: [participantId], references: [id])
+  staffUserId   String?
+  staffUser     StaffUser?        @relation(fields: [staffUserId], references: [id])
+  actorType     ActorType
+  action        String
+  targetType    String
+  targetId      String
+  metadata      Json?
+  createdAt     DateTime          @default(now())
+}
